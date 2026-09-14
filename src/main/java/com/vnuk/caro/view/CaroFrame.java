@@ -57,26 +57,31 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
 
         if (result.hasWinner()) {
             boardPanel.setWinningPoints(result.getWinningLine());
-            String winnerName = result.getWinner() == CellState.X ? "Người chơi 1 (X)" : "Máy AI (O)";
-            if (controller.getMode() == com.vnuk.caro.model.GameMode.PVP && result.getWinner() == CellState.O) {
-                winnerName = "Người chơi 2 (O)";
-            }
+            String winnerName = controller.getCurrentTurn().getName();
             boolean isX = result.getWinner() == CellState.X;
             controlPanel.updateTurnDisplay("THẮNG: " + winnerName, isX);
-            JOptionPane.showMessageDialog(
+            int choice = JOptionPane.showConfirmDialog(
                 this,
-                "🎉 CHIẾN THẮNG!\n" + winnerName + " đã tạo thành chuỗi 5 quân liên tiếp!",
+                "🎉 CHIẾN THẮNG!\n" + winnerName + " đã tạo thành chuỗi 5 quân liên tiếp!\n\nBạn có muốn ĐẤU LẠI ngay không?",
                 "Kết thúc ván đấu",
+                JOptionPane.YES_NO_OPTION,
                 JOptionPane.INFORMATION_MESSAGE
             );
+            if (choice == JOptionPane.YES_OPTION) {
+                controller.rematch();
+            }
         } else if (result.isDraw()) {
             controlPanel.updateTurnDisplay("HÒA CỜ", true);
-            JOptionPane.showMessageDialog(
+            int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Bàn cờ đã đầy mà không ai thắng.\nKết quả ván đấu: HÒA!",
+                "Bàn cờ đã đầy mà không ai thắng.\nKết quả ván đấu: HÒA!\n\nBạn có muốn ĐẤU LẠI ngay không?",
                 "Kết thúc ván đấu",
+                JOptionPane.YES_NO_OPTION,
                 JOptionPane.INFORMATION_MESSAGE
             );
+            if (choice == JOptionPane.YES_OPTION) {
+                controller.rematch();
+            }
         } else {
             boolean isX = controller.getCurrentTurn().getSymbol() == CellState.X;
             controlPanel.updateTurnDisplay(controller.getCurrentTurn().getName(), isX);

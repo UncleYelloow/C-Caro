@@ -27,8 +27,10 @@ public class ControlPanel extends JPanel {
 
     private final JComboBox<GameMode> cmbMode;
     private final JComboBox<AIDifficulty> cmbDifficulty;
+    private final JComboBox<String> cmbFirstTurn;
     private final JComboBox<Integer> cmbSize;
     private final JButton btnNewGame;
+    private final JButton btnRematch;
     private final JButton btnUndo;
     private final JLabel lblStatus;
     private final JLabel lblTurnBadge;
@@ -57,7 +59,7 @@ public class ControlPanel extends JPanel {
         lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
         add(lblSub);
 
-        add(Box.createVerticalStrut(20));
+        add(Box.createVerticalStrut(18));
 
         // 2. Thẻ hiển thị lượt chơi (Turn badge)
         lblTurnBadge = new JLabel("LƯỢT ĐI: NGƯỜI CHƠI 1 (X)", SwingConstants.CENTER);
@@ -70,30 +72,25 @@ public class ControlPanel extends JPanel {
         lblTurnBadge.setMaximumSize(new Dimension(240, 40));
         add(lblTurnBadge);
 
-        add(Box.createVerticalStrut(20));
+        add(Box.createVerticalStrut(16));
 
         // 3. Cấu hình chế độ chơi
         add(createSectionLabel("Chế độ chơi:"));
         cmbMode = new JComboBox<>(GameMode.values());
         cmbMode.setSelectedItem(controller.getMode());
-        cmbMode.setMaximumSize(new Dimension(240, 36));
+        cmbMode.setMaximumSize(new Dimension(240, 34));
         cmbMode.setAlignmentX(Component.CENTER_ALIGNMENT);
         add(cmbMode);
 
-        add(Box.createVerticalStrut(12));
+        add(Box.createVerticalStrut(10));
 
         // 4. Cấu hình độ khó AI
         add(createSectionLabel("Độ khó AI:"));
         cmbDifficulty = new JComboBox<>(AIDifficulty.values());
         cmbDifficulty.setSelectedItem(controller.getDifficulty());
-        cmbDifficulty.setMaximumSize(new Dimension(240, 36));
+        cmbDifficulty.setMaximumSize(new Dimension(240, 34));
         cmbDifficulty.setAlignmentX(Component.CENTER_ALIGNMENT);
         add(cmbDifficulty);
-
-        cmbMode.addActionListener(e -> {
-            boolean isPve = cmbMode.getSelectedItem() == GameMode.PVE;
-            cmbDifficulty.setEnabled(isPve);
-        });
 
         cmbDifficulty.addActionListener(e -> {
             AIDifficulty diff = (AIDifficulty) cmbDifficulty.getSelectedItem();
@@ -102,30 +99,61 @@ public class ControlPanel extends JPanel {
             }
         });
 
-        add(Box.createVerticalStrut(12));
+        add(Box.createVerticalStrut(10));
 
-        // 5. Cấu hình kích thước bàn cờ
+        // 5. Cấu hình Lượt đi trước
+        add(createSectionLabel("Lượt đi trước:"));
+        String[] firstTurnOptions = {"Người chơi đi trước (X)", "Máy AI đi trước (X)"};
+        cmbFirstTurn = new JComboBox<>(firstTurnOptions);
+        cmbFirstTurn.setSelectedIndex(controller.isAiFirst() ? 1 : 0);
+        cmbFirstTurn.setMaximumSize(new Dimension(240, 34));
+        cmbFirstTurn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        add(cmbFirstTurn);
+
+        cmbMode.addActionListener(e -> {
+            boolean isPve = cmbMode.getSelectedItem() == GameMode.PVE;
+            cmbDifficulty.setEnabled(isPve);
+            cmbFirstTurn.removeAllItems();
+            if (isPve) {
+                cmbFirstTurn.addItem("Người chơi đi trước (X)");
+                cmbFirstTurn.addItem("Máy AI đi trước (X)");
+            } else {
+                cmbFirstTurn.addItem("Người chơi 1 đi trước (X)");
+                cmbFirstTurn.addItem("Người chơi 2 đi trước (X)");
+            }
+        });
+
+        add(Box.createVerticalStrut(10));
+
+        // 6. Cấu hình kích thước bàn cờ
         add(createSectionLabel("Kích thước bàn cờ:"));
         Integer[] sizes = {10, 12, 15, 18, 20};
         cmbSize = new JComboBox<>(sizes);
         cmbSize.setSelectedItem(Board.DEFAULT_SIZE);
-        cmbSize.setMaximumSize(new Dimension(240, 36));
+        cmbSize.setMaximumSize(new Dimension(240, 34));
         cmbSize.setAlignmentX(Component.CENTER_ALIGNMENT);
         add(cmbSize);
 
-        add(Box.createVerticalStrut(24));
+        add(Box.createVerticalStrut(18));
 
-        // 6. Nút chức năng
+        // 7. Nút chức năng
         btnNewGame = createStyledButton("Ván mới (New Game)", new Color(37, 99, 235), Color.WHITE);
         btnNewGame.addActionListener(e -> {
             int size = (Integer) cmbSize.getSelectedItem();
             GameMode mode = (GameMode) cmbMode.getSelectedItem();
             AIDifficulty diff = (AIDifficulty) cmbDifficulty.getSelectedItem();
-            controller.startNewGame(size, mode, diff);
+            boolean aiFirst = cmbFirstTurn.getSelectedIndex() == 1;
+            controller.startNewGame(size, mode, diff, aiFirst);
         });
         add(btnNewGame);
 
-        add(Box.createVerticalStrut(10));
+        add(Box.createVerticalStrut(8));
+
+        btnRematch = createStyledButton("Đấu lại (Rematch)", new Color(16, 185, 129), Color.WHITE);
+        btnRematch.addActionListener(e -> controller.rematch());
+        add(btnRematch);
+
+        add(Box.createVerticalStrut(8));
 
         btnUndo = createStyledButton("Hoàn tác nước cờ (Undo)", new Color(241, 245, 249), new Color(51, 65, 85));
         btnUndo.addActionListener(e -> controller.undoMove());

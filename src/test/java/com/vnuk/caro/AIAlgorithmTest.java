@@ -1,9 +1,12 @@
 package com.vnuk.caro;
 
+import com.vnuk.caro.logic.GameController;
 import com.vnuk.caro.logic.ai.MinimaxSolver;
 import com.vnuk.caro.model.AIDifficulty;
 import com.vnuk.caro.model.Board;
 import com.vnuk.caro.model.CellState;
+import com.vnuk.caro.model.GameMode;
+import com.vnuk.caro.model.HumanPlayer;
 import com.vnuk.caro.model.Move;
 
 /**
@@ -27,9 +30,10 @@ public class AIAlgorithmTest {
         testBlockOpenThree();
         testTakeImmediateWin();
         testPerformanceHardMode();
+        testBotFirstAndRematch();
 
         System.out.println("\n=================================================");
-        System.out.println("TẤT CẢ 6/6 BÀI TEST AI ĐÃ ĐẠT KẾT QUẢ XUẤT SẮC! (PASS)");
+        System.out.println("TẤT CẢ 8/8 BÀI TEST AI & TÍNH NĂNG ĐÃ VƯỢT QUA! (PASS)");
         System.out.println("=================================================");
     }
 
@@ -131,6 +135,41 @@ public class AIAlgorithmTest {
 
         assertCondition(aiMove != null && elapsed < 200,
             "6. Tốc độ tính toán cấp Khó cực nhanh: " + elapsed + "ms (< 200ms tiêu chuẩn)");
+    }
+
+    private static void testBotFirstAndRematch() {
+        GameController controller = new GameController();
+        controller.startNewGame(15, GameMode.PVE, AIDifficulty.HARD, true);
+
+        // Chờ AI đi nước đầu tiên (chạy trên thread riêng)
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException ignored) {}
+
+        assertCondition(controller.isAiFirst(), "7. Bật cấu hình Bot đi trước thành công (isAiFirst = true)");
+        assertCondition(controller.getBoard().getCell(7, 7) == CellState.X, "   Bot đã tự động đánh nước mở màn X tại tâm bàn cờ (7, 7)");
+        assertCondition(controller.getCurrentTurn() instanceof HumanPlayer, "   Lượt chơi chuyển sang Người chơi (O)");
+
+        // Người chơi đi nước cờ O tại (7, 8)
+        boolean moved = controller.handleHumanMove(7, 8);
+        assertCondition(moved && controller.getBoard().getCell(7, 8) == CellState.O, "   Người chơi đi nước cờ O tại (7, 8)");
+
+        // Chờ AI phản hồi nước tiếp theo
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException ignored) {}
+
+        // Thử nghiệm tính năng Hoàn tác (Undo) khi Bot đi trước
+        boolean undid = controller.undoMove();
+        assertCondition(undid && controller.getCurrentTurn() instanceof HumanPlayer, "   Hoàn tác (Undo) khi Bot đi trước: trả lượt về Người chơi (O)");
+
+        // Kiểm thử tính năng Đấu lại (Rematch)
+        controller.rematch();
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException ignored) {}
+
+        assertCondition(controller.getHistory().size() == 1, "8. Đấu lại (Rematch) làm mới ván cờ, Bot tự động đi trước ván mới");
     }
 
     private static void assertCondition(boolean condition, String testName) {

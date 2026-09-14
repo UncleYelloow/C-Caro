@@ -33,6 +33,7 @@ public class GameController {
     private Player currentTurn;
     private GameMode mode;
     private AIDifficulty difficulty;
+    private boolean isAiFirst;
     private final GameHistory history;
     private WinResult lastResult;
     private boolean isAiThinking;
@@ -44,6 +45,7 @@ public class GameController {
         this.board = new Board(Board.DEFAULT_SIZE);
         this.mode = GameMode.PVE;
         this.difficulty = AIDifficulty.HARD;
+        this.isAiFirst = false;
         this.lastResult = WinResult.continuePlaying();
         this.isAiThinking = false;
         setupPlayers();
@@ -56,9 +58,14 @@ public class GameController {
     }
 
     public void startNewGame(int boardSize, GameMode mode, AIDifficulty diff) {
+        startNewGame(boardSize, mode, diff, false);
+    }
+
+    public void startNewGame(int boardSize, GameMode mode, AIDifficulty diff, boolean aiFirst) {
         this.board = new Board(boardSize);
         this.mode = mode;
         this.difficulty = diff;
+        this.isAiFirst = aiFirst;
         this.history.clear();
         this.lastResult = WinResult.continuePlaying();
         this.isAiThinking = false;
@@ -68,14 +75,28 @@ public class GameController {
             l.onGameReset();
             l.onStatusMessage("Ván mới bắt đầu! Lượt của: " + currentTurn.getName());
         }
+
+        if (mode == GameMode.PVE && currentTurn instanceof AIPlayer) {
+            triggerAIMove();
+        }
+    }
+
+    public void rematch() {
+        startNewGame(board.getSize(), mode, difficulty, isAiFirst);
     }
 
     private void setupPlayers() {
-        this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
         if (mode == GameMode.PVP) {
+            this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
             this.player2 = new HumanPlayer("Người chơi 2 (O)", CellState.O);
         } else {
-            this.player2 = new AIPlayer("Máy AI (O)", CellState.O, difficulty);
+            if (isAiFirst) {
+                this.player1 = new AIPlayer("Máy AI (X)", CellState.X, difficulty);
+                this.player2 = new HumanPlayer("Người chơi (O)", CellState.O);
+            } else {
+                this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
+                this.player2 = new AIPlayer("Máy AI (O)", CellState.O, difficulty);
+            }
         }
         this.currentTurn = player1;
     }
@@ -158,17 +179,29 @@ public class GameController {
                 switchTurn();
             }
         } else {
-            // Chế độ PvE: hoàn tác cả nước của AI lẫn nước của người chơi
-            if (history.size() >= 2) {
-                Move aiMove = history.pop();
-                board.clearCell(aiMove.getRow(), aiMove.getCol());
-                Move humanMove = history.pop();
-                board.clearCell(humanMove.getRow(), humanMove.getCol());
-                currentTurn = player1;
-            } else if (history.size() == 1) {
-                Move onlyMove = history.pop();
-                board.clearCell(onlyMove.getRow(), onlyMove.getCol());
-                currentTurn = player1;
+            // Chế độ PvE: hoàn tác để trả lại lượt đi cho người chơi
+            if (isAiFirst) {
+                // AI đi trước (nước 1, 3, 5 là AI; nước 2, 4 là Người chơi)
+                if (history.size() >= 2) {
+                    Move aiMove = history.pop();
+                    board.clearCell(aiMove.getRow(), aiMove.getCol());
+                    Move humanMove = history.pop();
+                    board.clearCell(humanMove.getRow(), humanMove.getCol());
+                    currentTurn = player2; // Người chơi là player2 (O)
+                }
+            } else {
+                // Người đi trước (nước 1, 3 là Người; nước 2, 4 là AI)
+                if (history.size() >= 2) {
+                    Move aiMove = history.pop();
+                    board.clearCell(aiMove.getRow(), aiMove.getCol());
+                    Move humanMove = history.pop();
+                    board.clearCell(humanMove.getRow(), humanMove.getCol());
+                    currentTurn = player1; // Người chơi là player1 (X)
+                } else if (history.size() == 1) {
+                    Move onlyMove = history.pop();
+                    board.clearCell(onlyMove.getRow(), onlyMove.getCol());
+                    currentTurn = player1;
+                }
             }
         }
 
@@ -207,9 +240,16 @@ public class GameController {
         return difficulty;
     }
 
+    public boolean isAiFirst() {
+        return isAiFirst;
+    }
+
     public void setDifficulty(AIDifficulty difficulty) {
         if (difficulty == null) return;
         this.difficulty = difficulty;
+        if (player1 instanceof AIPlayer) {
+            ((AIPlayer) player1).setDifficulty(difficulty);
+        }
         if (player2 instanceof AIPlayer) {
             ((AIPlayer) player2).setDifficulty(difficulty);
         }
