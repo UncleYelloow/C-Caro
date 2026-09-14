@@ -9,5 +9,11 @@ if not exist bin\com\vnuk\caro\WinCheckerVerification.class (
     call build.bat
 )
 
+echo [1/2] Kiểm thử Logic Bàn cờ và WinChecker:
 java "-Dfile.encoding=UTF-8" -cp bin com.vnuk.caro.WinCheckerVerification
+
+echo.
+echo [2/2] Kiểm thử Thuật toán AI, Chặn nước và Alpha-Beta:
+java "-Dfile.encoding=UTF-8" -cp bin com.vnuk.caro.AIAlgorithmTest
+
 pause

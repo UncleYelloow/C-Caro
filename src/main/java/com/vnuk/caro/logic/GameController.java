@@ -43,7 +43,7 @@ public class GameController {
         this.listeners = new ArrayList<>();
         this.board = new Board(Board.DEFAULT_SIZE);
         this.mode = GameMode.PVE;
-        this.difficulty = AIDifficulty.EASY;
+        this.difficulty = AIDifficulty.HARD;
         this.lastResult = WinResult.continuePlaying();
         this.isAiThinking = false;
         setupPlayers();
@@ -205,6 +205,15 @@ public class GameController {
 
     public AIDifficulty getDifficulty() {
         return difficulty;
+    }
+
+    public void setDifficulty(AIDifficulty difficulty) {
+        if (difficulty == null) return;
+        this.difficulty = difficulty;
+        if (player2 instanceof AIPlayer) {
+            ((AIPlayer) player2).setDifficulty(difficulty);
+        }
+        notifyStatus("Đã đổi độ khó AI thành: " + difficulty.getDisplayName());
     }
 
     public GameHistory getHistory() {

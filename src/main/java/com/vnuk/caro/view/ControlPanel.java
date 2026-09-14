@@ -95,6 +95,13 @@ public class ControlPanel extends JPanel {
             cmbDifficulty.setEnabled(isPve);
         });
 
+        cmbDifficulty.addActionListener(e -> {
+            AIDifficulty diff = (AIDifficulty) cmbDifficulty.getSelectedItem();
+            if (diff != null) {
+                controller.setDifficulty(diff);
+            }
+        });
+
         add(Box.createVerticalStrut(12));
 
         // 5. Cấu hình kích thước bàn cờ

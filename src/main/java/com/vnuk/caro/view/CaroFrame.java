@@ -57,7 +57,12 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
 
         if (result.hasWinner()) {
             boardPanel.setWinningPoints(result.getWinningLine());
-            String winnerName = result.getWinner() == CellState.X ? "Người chơi 1 (X)" : "Đối thủ (O)";
+            String winnerName = result.getWinner() == CellState.X ? "Người chơi 1 (X)" : "Máy AI (O)";
+            if (controller.getMode() == com.vnuk.caro.model.GameMode.PVP && result.getWinner() == CellState.O) {
+                winnerName = "Người chơi 2 (O)";
+            }
+            boolean isX = result.getWinner() == CellState.X;
+            controlPanel.updateTurnDisplay("THẮNG: " + winnerName, isX);
             JOptionPane.showMessageDialog(
                 this,
                 "🎉 CHIẾN THẮNG!\n" + winnerName + " đã tạo thành chuỗi 5 quân liên tiếp!",
@@ -65,6 +70,7 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
                 JOptionPane.INFORMATION_MESSAGE
             );
         } else if (result.isDraw()) {
+            controlPanel.updateTurnDisplay("HÒA CỜ", true);
             JOptionPane.showMessageDialog(
                 this,
                 "Bàn cờ đã đầy mà không ai thắng.\nKết quả ván đấu: HÒA!",
