@@ -11,6 +11,7 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -23,43 +24,53 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Bàn cờ Caro - Dark Theme hiện đại.
- * Lưới gỗ nâu-tối, quân X đỏ tươi, quân O xanh lam.
- * Hiệu ứng: hover, last-move highlight, winning line glow.
+ * Bàn cờ Caro - Thiết kế Dark Cyber Slate hiện đại.
+ * Căn giữa linh hoạt, hiển thị tọa độ chuẩn, hiệu ứng Ghost piece khi rê chuột,
+ * quân cờ neon rực rỡ và hiệu ứng kết nối chuỗi chiến thắng.
  */
 public class BoardPanel extends JPanel {
     private final GameController controller;
     private int cellSize = 38;
-    private final int margin = 32;
+    private final int margin = 40;
 
     private Point hoverCell = null;
     private Move lastMove = null;
     private List<Point> winningPoints = Collections.emptyList();
 
-    // Dark board palette
-    private static final Color BG_OUTER      = new Color(15, 23, 42);
-    private static final Color BOARD_BG      = new Color(31, 43, 28);   // Nền gỗ xanh đậm
-    private static final Color BOARD_BG2     = new Color(24, 36, 20);
-    private static final Color GRID_COLOR    = new Color(80, 110, 65, 200);
-    private static final Color BORDER_COLOR  = new Color(100, 140, 80);
-    private static final Color DOT_COLOR     = new Color(120, 160, 100, 180);
-    private static final Color HOVER_COLOR   = new Color(255, 255, 255, 28);
-    private static final Color LAST_MOVE_BG  = new Color(250, 204, 21, 55);
-    private static final Color LAST_MOVE_BR  = new Color(250, 204, 21, 200);
-    private static final Color WIN_BG        = new Color(34, 197, 94, 60);
-    private static final Color WIN_BORDER    = new Color(34, 197, 94, 220);
-    private static final Color X_COLOR       = new Color(248, 80, 80);
-    private static final Color X_SHADOW      = new Color(239, 68, 68, 60);
-    private static final Color O_COLOR       = new Color(74, 158, 255);
-    private static final Color O_SHADOW      = new Color(59, 130, 246, 60);
+    // Bảng màu hiện đại (Modern Slate Palette)
+    private static final Color BG_CANVAS      = new Color(11, 15, 25);
+    private static final Color BOARD_BG_TOP   = new Color(30, 41, 59);
+    private static final Color BOARD_BG_BOT   = new Color(15, 23, 42);
+    private static final Color BOARD_BORDER   = new Color(51, 65, 85);
+    private static final Color BOARD_SHADOW   = new Color(0, 0, 0, 80);
 
-    // Các điểm sao trên bàn cờ (star points)
+    private static final Color GRID_LINE      = new Color(71, 85, 105, 210);
+    private static final Color GRID_BORDER    = new Color(100, 116, 139, 240);
+    private static final Color COORD_TEXT     = new Color(148, 163, 184);
+    private static final Color STAR_DOT       = new Color(148, 163, 184, 220);
+
+    private static final Color HOVER_SQUARE   = new Color(255, 255, 255, 18);
+    private static final Color LAST_MOVE_RING = new Color(245, 158, 11);
+    private static final Color LAST_MOVE_BG   = new Color(245, 158, 11, 40);
+
+    private static final Color WIN_BEAM       = new Color(16, 185, 129);
+    private static final Color WIN_BG         = new Color(16, 185, 129, 65);
+
+    private static final Color X_COLOR        = new Color(244, 63, 94);
+    private static final Color X_GLOW         = new Color(244, 63, 94, 65);
+    private static final Color X_HIGHLIGHT    = new Color(254, 205, 211);
+
+    private static final Color O_COLOR        = new Color(6, 182, 212);
+    private static final Color O_GLOW         = new Color(6, 182, 212, 65);
+    private static final Color O_HIGHLIGHT    = new Color(224, 242, 254);
+
+    // Điểm sao Hoshi
     private static final int[][] STAR_OFFSETS_15 = {{3,3},{3,11},{11,3},{11,11},{7,7}};
     private static final int[][] STAR_OFFSETS_19 = {{3,3},{3,9},{3,15},{9,3},{9,9},{9,15},{15,3},{15,9},{15,15}};
 
     public BoardPanel(GameController controller) {
         this.controller = controller;
-        setBackground(BG_OUTER);
+        setBackground(BG_CANVAS);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         addMouseMotionListener(new MouseMotionAdapter() {
@@ -97,13 +108,13 @@ public class BoardPanel extends JPanel {
     public void updateDimensions() {
         Board b = controller.getBoard();
         int size = b.getSize();
-        // Điều chỉnh cellSize theo kích thước bàn cờ
-        if (size <= 12) cellSize = 44;
-        else if (size <= 15) cellSize = 40;
-        else if (size <= 18) cellSize = 36;
-        else cellSize = 32;
-        int boardPixelSize = margin * 2 + (size - 1) * cellSize;
-        setPreferredSize(new Dimension(boardPixelSize + margin, boardPixelSize + margin));
+        if (size <= 12) cellSize = 42;
+        else if (size <= 15) cellSize = 38;
+        else if (size <= 18) cellSize = 34;
+        else cellSize = 30;
+
+        int boardPixel = margin * 2 + (size - 1) * cellSize;
+        setPreferredSize(new Dimension(boardPixel + 40, boardPixel + 40));
         revalidate();
         repaint();
     }
@@ -125,14 +136,26 @@ public class BoardPanel extends JPanel {
         updateDimensions();
     }
 
+    private int getStartX(int boardW) {
+        return Math.max(margin, (getWidth() - boardW) / 2);
+    }
+
+    private int getStartY(int boardH) {
+        return Math.max(margin, (getHeight() - boardH) / 2);
+    }
+
     private Point getCellFromCoordinates(int px, int py) {
         Board b = controller.getBoard();
         int size = b.getSize();
+        int boardW = (size - 1) * cellSize;
+        int boardH = (size - 1) * cellSize;
+        int startX = getStartX(boardW);
+        int startY = getStartY(boardH);
 
         for (int r = 0; r < size; r++) {
             for (int c = 0; c < size; c++) {
-                int cx = margin + c * cellSize;
-                int cy = margin + r * cellSize;
+                int cx = startX + c * cellSize;
+                int cy = startY + r * cellSize;
                 if (Math.abs(px - cx) <= cellSize / 2 && Math.abs(py - cy) <= cellSize / 2) {
                     return new Point(r, c);
                 }
@@ -149,141 +172,216 @@ public class BoardPanel extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
+        // 1. Toàn bộ nền canvas
+        g2.setColor(BG_CANVAS);
+        g2.fillRect(0, 0, getWidth(), getHeight());
+
         Board board = controller.getBoard();
         int size = board.getSize();
         int boardW = (size - 1) * cellSize;
         int boardH = (size - 1) * cellSize;
 
-        // 1. Nền ngoài (outer background)
-        g2.setColor(BG_OUTER);
-        g2.fillRect(0, 0, getWidth(), getHeight());
+        int startX = getStartX(boardW);
+        int startY = getStartY(boardH);
+        int pad = 24;
 
-        // 2. Bàn cờ gradient gỗ xanh đậm
-        GradientPaint woodGrad = new GradientPaint(
-            margin, margin, BOARD_BG,
-            margin + boardW, margin + boardH, BOARD_BG2
+        // 2. Bóng đổ bàn cờ (Soft Outer Shadow)
+        g2.setColor(BOARD_SHADOW);
+        g2.fillRoundRect(startX - pad + 4, startY - pad + 6, boardW + pad * 2, boardH + pad * 2, 20, 20);
+
+        // 3. Khối bàn cờ Slate vát bo tròn sang trọng
+        GradientPaint boardGrad = new GradientPaint(
+            startX, startY, BOARD_BG_TOP,
+            startX + boardW, startY + boardH, BOARD_BG_BOT
         );
-        g2.setPaint(woodGrad);
-        g2.fillRoundRect(margin - 14, margin - 14, boardW + 28, boardH + 28, 14, 14);
+        g2.setPaint(boardGrad);
+        g2.fillRoundRect(startX - pad, startY - pad, boardW + pad * 2, boardH + pad * 2, 18, 18);
 
-        // 3. Viền bàn cờ
-        g2.setColor(BORDER_COLOR);
-        g2.setStroke(new BasicStroke(2f));
-        g2.drawRoundRect(margin - 14, margin - 14, boardW + 28, boardH + 28, 14, 14);
+        // Viền bàn cờ tinh tế
+        g2.setColor(BOARD_BORDER);
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(startX - pad, startY - pad, boardW + pad * 2, boardH + pad * 2, 18, 18);
 
-        // 4. Lưới giao điểm (Vẽ LINE thay vì ô)
-        g2.setStroke(new BasicStroke(0.9f));
-        g2.setColor(GRID_COLOR);
+        // 4. Tọa độ chữ cái (A, B, C...) và số (1, 2, 3...)
+        drawCoordinates(g2, size, startX, startY);
+
+        // 5. Lưới giao điểm Caro
+        g2.setColor(GRID_LINE);
+        g2.setStroke(new BasicStroke(1.0f));
         for (int i = 0; i < size; i++) {
-            int pos = margin + i * cellSize;
-            g2.drawLine(margin, pos, margin + boardW, pos);
-            g2.drawLine(pos, margin, pos, margin + boardH);
+            int posC = startX + i * cellSize;
+            int posR = startY + i * cellSize;
+            g2.drawLine(startX, posR, startX + boardW, posR);
+            g2.drawLine(posC, startY, posC, startY + boardH);
         }
 
-        // 5. Viền ngoài bàn cờ dày hơn
-        g2.setStroke(new BasicStroke(2f));
-        g2.setColor(BORDER_COLOR);
-        g2.drawRect(margin, margin, boardW, boardH);
+        // Khung viền ngoài lưới dày hơn
+        g2.setColor(GRID_BORDER);
+        g2.setStroke(new BasicStroke(2.0f));
+        g2.drawRect(startX, startY, boardW, boardH);
 
-        // 6. Điểm sao (Star points)
-        drawStarPoints(g2, size);
+        // 6. Điểm sao Hoshi
+        drawStarPoints(g2, size, startX, startY);
 
-        // 7. Tô sáng: Hover
-        if (hoverCell != null && board.getCell(hoverCell.x, hoverCell.y) == CellState.EMPTY) {
-            int hx = margin + hoverCell.y * cellSize;
-            int hy = margin + hoverCell.x * cellSize;
+        // 7. Hiệu ứng Hover & Ghost Piece (Quân cờ mờ xem trước)
+        if (hoverCell != null && board.getCell(hoverCell.x, hoverCell.y) == CellState.EMPTY && !controller.isAiThinking() && !controller.getLastResult().isOver()) {
+            int hx = startX + hoverCell.y * cellSize;
+            int hy = startY + hoverCell.x * cellSize;
             int half = cellSize / 2;
-            g2.setColor(HOVER_COLOR);
-            g2.fillRoundRect(hx - half + 1, hy - half + 1, cellSize - 2, cellSize - 2, 6, 6);
+
+            // Ô sáng nhẹ
+            g2.setColor(HOVER_SQUARE);
+            g2.fillRoundRect(hx - half + 2, hy - half + 2, cellSize - 4, cellSize - 4, 8, 8);
+
+            // Bóng quân cờ mờ
+            CellState previewSymbol = controller.getCurrentTurn().getSymbol();
+            drawGhostPiece(g2, hx, hy, previewSymbol);
         }
 
-        // 8. Tô sáng: Nước đi cuối
+        // 8. Đánh dấu nước đi gần nhất (Last Move)
         if (lastMove != null) {
-            int lx = margin + lastMove.getCol() * cellSize;
-            int ly = margin + lastMove.getRow() * cellSize;
-            int half = cellSize / 2;
+            int lx = startX + lastMove.getCol() * cellSize;
+            int ly = startY + lastMove.getRow() * cellSize;
+            int rad = (int) (cellSize * 0.44);
+
             g2.setColor(LAST_MOVE_BG);
-            g2.fillRoundRect(lx - half + 1, ly - half + 1, cellSize - 2, cellSize - 2, 6, 6);
-            g2.setColor(LAST_MOVE_BR);
-            g2.setStroke(new BasicStroke(1.5f));
-            g2.drawRoundRect(lx - half + 1, ly - half + 1, cellSize - 2, cellSize - 2, 6, 6);
+            g2.fillOval(lx - rad, ly - rad, rad * 2, rad * 2);
+
+            g2.setColor(LAST_MOVE_RING);
+            g2.setStroke(new BasicStroke(2.0f));
+            g2.drawOval(lx - rad, ly - rad, rad * 2, rad * 2);
         }
 
-        // 9. Tô sáng: Đường chiến thắng
-        for (Point wp : winningPoints) {
-            int wx = margin + wp.y * cellSize;
-            int wy = margin + wp.x * cellSize;
-            int half = cellSize / 2;
-            g2.setColor(WIN_BG);
-            g2.fillRoundRect(wx - half + 1, wy - half + 1, cellSize - 2, cellSize - 2, 6, 6);
-            g2.setColor(WIN_BORDER);
-            g2.setStroke(new BasicStroke(2f));
-            g2.drawRoundRect(wx - half + 1, wy - half + 1, cellSize - 2, cellSize - 2, 6, 6);
+        // 9. Nối chùm tia chiến thắng (Winning Beam & Stones)
+        if (!winningPoints.isEmpty()) {
+            drawWinningLine(g2, startX, startY);
         }
 
-        // 10. Vẽ quân cờ X / O
+        // 10. Vẽ toàn bộ quân cờ đã đánh trên bàn
         for (int r = 0; r < size; r++) {
             for (int c = 0; c < size; c++) {
                 CellState state = board.getCell(r, c);
                 if (state != CellState.EMPTY) {
-                    drawPiece(g2, r, c, state);
+                    drawPiece(g2, startX + c * cellSize, startY + r * cellSize, state);
                 }
             }
         }
+    }
 
-        // 11. Số thứ tự cột/hàng (nhỏ, mờ) - chỉ hiển thị bàn ≤ 15
-        if (size <= 15) {
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            g2.setColor(new Color(150, 180, 130, 130));
-            for (int i = 0; i < size; i++) {
-                String label = Integer.toString(i + 1);
-                int px = margin + i * cellSize - 3;
-                g2.drawString(label, px, margin - 5);
-                g2.drawString(label, margin - 18, margin + i * cellSize + 4);
-            }
+    private void drawCoordinates(Graphics2D g2, int size, int startX, int startY) {
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g2.setColor(COORD_TEXT);
+        FontMetrics fm = g2.getFontMetrics();
+
+        for (int i = 0; i < size; i++) {
+            // Chữ cái cột (A, B, C...)
+            String colLabel = String.valueOf((char) ('A' + i));
+            int colX = startX + i * cellSize - fm.stringWidth(colLabel) / 2;
+            g2.drawString(colLabel, colX, startY - 8);
+
+            // Số dòng (1, 2, 3...)
+            String rowLabel = String.valueOf(i + 1);
+            int rowY = startY + i * cellSize + fm.getAscent() / 2 - 1;
+            g2.drawString(rowLabel, startX - fm.stringWidth(rowLabel) - 10, rowY);
         }
     }
 
-    private void drawStarPoints(Graphics2D g2, int size) {
-        g2.setColor(DOT_COLOR);
-        int[][] pts = size >= 18 ? STAR_OFFSETS_19 :
-                      size >= 15 ? STAR_OFFSETS_15 : null;
+    private void drawStarPoints(Graphics2D g2, int size, int startX, int startY) {
+        g2.setColor(STAR_DOT);
+        int[][] pts = size >= 18 ? STAR_OFFSETS_19 : (size >= 15 ? STAR_OFFSETS_15 : null);
         if (pts == null) return;
         for (int[] p : pts) {
             if (p[0] < size && p[1] < size) {
-                int cx = margin + p[1] * cellSize;
-                int cy = margin + p[0] * cellSize;
-                g2.fillOval(cx - 4, cy - 4, 8, 8);
+                int cx = startX + p[1] * cellSize;
+                int cy = startY + p[0] * cellSize;
+                g2.fillOval(cx - 3, cy - 3, 6, 6);
             }
         }
     }
 
-    private void drawPiece(Graphics2D g2, int r, int c, CellState state) {
-        int cx = margin + c * cellSize;
-        int cy = margin + r * cellSize;
+    private void drawPiece(Graphics2D g2, int cx, int cy, CellState state) {
         int radius = (int) (cellSize * 0.33);
 
         if (state == CellState.X) {
-            int pad = (int)(cellSize * 0.26);
-            // Bóng đổ mềm
-            g2.setColor(X_SHADOW);
-            g2.setStroke(new BasicStroke(5.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.drawLine(cx - radius + 1, cy - radius + 1, cx + radius + 1, cy + radius + 1);
-            g2.drawLine(cx + radius + 1, cy - radius + 1, cx - radius + 1, cy + radius + 1);
-            // Nét chính
+            // Hiệu ứng phát sáng X
+            g2.setColor(X_GLOW);
+            g2.setStroke(new BasicStroke(6.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(cx - radius, cy - radius, cx + radius, cy + radius);
+            g2.drawLine(cx + radius, cy - radius, cx - radius, cy + radius);
+
+            // Nét chính X
             g2.setColor(X_COLOR);
             g2.setStroke(new BasicStroke(3.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.drawLine(cx - radius, cy - radius, cx + radius, cy + radius);
             g2.drawLine(cx + radius, cy - radius, cx - radius, cy + radius);
-        } else {
-            // Bóng đổ mềm
-            g2.setColor(O_SHADOW);
-            g2.setStroke(new BasicStroke(5.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.drawOval(cx - radius + 1, cy - radius + 1, radius * 2, radius * 2);
-            // Vòng tròn chính
-            g2.setColor(O_COLOR);
-            g2.setStroke(new BasicStroke(3.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            // Điểm sáng nhẹ trung tâm
+            g2.setColor(X_HIGHLIGHT);
+            g2.fillOval(cx - 2, cy - 2, 4, 4);
+        } else if (state == CellState.O) {
+            // Hiệu ứng phát sáng O
+            g2.setColor(O_GLOW);
+            g2.setStroke(new BasicStroke(6.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.drawOval(cx - radius, cy - radius, radius * 2, radius * 2);
+
+            // Nét chính O
+            g2.setColor(O_COLOR);
+            g2.setStroke(new BasicStroke(3.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawOval(cx - radius, cy - radius, radius * 2, radius * 2);
+
+            // Điểm bóng sáng phía trên
+            g2.setColor(O_HIGHLIGHT);
+            g2.fillOval(cx - radius / 2, cy - radius + 1, 3, 3);
+        }
+    }
+
+    private void drawGhostPiece(Graphics2D g2, int cx, int cy, CellState state) {
+        int radius = (int) (cellSize * 0.30);
+        if (state == CellState.X) {
+            g2.setColor(new Color(244, 63, 94, 85));
+            g2.setStroke(new BasicStroke(2.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(cx - radius, cy - radius, cx + radius, cy + radius);
+            g2.drawLine(cx + radius, cy - radius, cx - radius, cy + radius);
+        } else {
+            g2.setColor(new Color(6, 182, 212, 85));
+            g2.setStroke(new BasicStroke(2.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawOval(cx - radius, cy - radius, radius * 2, radius * 2);
+        }
+    }
+
+    private void drawWinningLine(Graphics2D g2, int startX, int startY) {
+        // Vẽ chùm tia kết nối từ điểm đầu đến điểm cuối
+        if (winningPoints.size() >= 2) {
+            Point first = winningPoints.get(0);
+            Point last = winningPoints.get(winningPoints.size() - 1);
+            int x1 = startX + first.y * cellSize;
+            int y1 = startY + first.x * cellSize;
+            int x2 = startX + last.y * cellSize;
+            int y2 = startY + last.x * cellSize;
+
+            // Glow ngoài
+            g2.setColor(new Color(16, 185, 129, 90));
+            g2.setStroke(new BasicStroke(8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(x1, y1, x2, y2);
+
+            // Tia chính
+            g2.setColor(WIN_BEAM);
+            g2.setStroke(new BasicStroke(3.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(x1, y1, x2, y2);
+        }
+
+        // Tô sáng từng ô chiến thắng
+        for (Point wp : winningPoints) {
+            int wx = startX + wp.y * cellSize;
+            int wy = startY + wp.x * cellSize;
+            int rad = (int) (cellSize * 0.44);
+
+            g2.setColor(WIN_BG);
+            g2.fillOval(wx - rad, wy - rad, rad * 2, rad * 2);
+
+            g2.setColor(WIN_BEAM);
+            g2.setStroke(new BasicStroke(2.2f));
+            g2.drawOval(wx - rad, wy - rad, rad * 2, rad * 2);
         }
     }
 }

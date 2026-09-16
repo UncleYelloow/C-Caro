@@ -1,20 +1,18 @@
 @echo off
-chcp 65001 > nul
 echo ===================================================
-echo   BIÊN DỊCH DỰ ÁN CỜ CARO (GOMOKU) - TUẦN 1-2
+echo   BIEN DICH DU AN CO CARO (GOMOKU)
 echo ===================================================
 
-if not exist bin (
-    mkdir bin
-)
+if not exist bin mkdir bin
 
-dir /s /b src\*.java > sources.txt
-javac --release 8 -encoding UTF-8 -d bin @sources.txt
-del sources.txt
+powershell -NoProfile -Command "(Get-ChildItem -Recurse -Filter *.java src | Resolve-Path -Relative) -replace '\\', '/' | Set-Content sources.txt"
+javac --release 8 -encoding UTF-8 -d bin @"sources.txt"
+set BUILD_STATUS=%errorlevel%
+if exist sources.txt del sources.txt
 
-if %errorlevel% equ 0 (
-    echo [THÀNH CÔNG] Đã biên dịch toàn bộ mã nguồn vào thư mục bin/
+if %BUILD_STATUS% equ 0 (
+    echo [THANH CONG] Da bien dich toan bo ma nguon vao thu muc bin/
 ) else (
-    echo [THẤT BẠI] Quá trình biên dịch xảy ra lỗi!
+    echo [THAT BAI] Qua trinh bien dich xay ra loi!
 )
 pause

@@ -39,6 +39,10 @@ public class GameController {
     private boolean isAiThinking;
     private final List<GameStateListener> listeners;
 
+    private int scoreX = 0;
+    private int scoreO = 0;
+    private int scoreDraw = 0;
+
     public GameController() {
         this.history = new GameHistory();
         this.listeners = new ArrayList<>();
@@ -87,8 +91,14 @@ public class GameController {
 
     private void setupPlayers() {
         if (mode == GameMode.PVP) {
-            this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
-            this.player2 = new HumanPlayer("Người chơi 2 (O)", CellState.O);
+            if (isAiFirst) {
+                // Người chơi 2 đi trước (X)
+                this.player1 = new HumanPlayer("Người chơi 2 (X)", CellState.X);
+                this.player2 = new HumanPlayer("Người chơi 1 (O)", CellState.O);
+            } else {
+                this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
+                this.player2 = new HumanPlayer("Người chơi 2 (O)", CellState.O);
+            }
         } else {
             if (isAiFirst) {
                 this.player1 = new AIPlayer("Máy AI (X)", CellState.X, difficulty);
@@ -130,6 +140,16 @@ public class GameController {
         history.push(move);
 
         lastResult = WinChecker.checkWin(board, r, c);
+
+        if (lastResult.hasWinner()) {
+            if (lastResult.getWinner() == CellState.X) {
+                scoreX++;
+            } else {
+                scoreO++;
+            }
+        } else if (lastResult.isDraw()) {
+            scoreDraw++;
+        }
 
         for (GameStateListener l : listeners) {
             l.onMoveMade(move, lastResult);
@@ -266,5 +286,23 @@ public class GameController {
 
     public boolean isAiThinking() {
         return isAiThinking;
+    }
+
+    public int getScoreX() {
+        return scoreX;
+    }
+
+    public int getScoreO() {
+        return scoreO;
+    }
+
+    public int getScoreDraw() {
+        return scoreDraw;
+    }
+
+    public void resetScores() {
+        this.scoreX = 0;
+        this.scoreO = 0;
+        this.scoreDraw = 0;
     }
 }

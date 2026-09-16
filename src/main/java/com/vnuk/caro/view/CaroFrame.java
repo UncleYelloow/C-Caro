@@ -1,9 +1,7 @@
 package com.vnuk.caro.view;
 
 import com.vnuk.caro.logic.GameController;
-import com.vnuk.caro.model.AIDifficulty;
 import com.vnuk.caro.model.CellState;
-import com.vnuk.caro.model.GameMode;
 import com.vnuk.caro.model.Move;
 import com.vnuk.caro.model.WinResult;
 
@@ -16,12 +14,16 @@ import java.awt.CardLayout;
 import java.awt.Dimension;
 
 /**
- * Cửa sổ chính của ứng dụng Cờ Caro.
- * Sử dụng CardLayout để chuyển đổi giữa màn hình Menu chính và màn hình Game.
+ * Cửa sổ chính của ứng dụng Cờ Caro (Gomoku).
+ * Sử dụng CardLayout để chuyển đổi mượt mà giữa Menu và màn hình Game
+ * với kích thước cửa sổ ổn định, không bị co giật hay nhảy vị trí.
  */
 public class CaroFrame extends JFrame implements GameController.GameStateListener {
     private static final String CARD_MENU = "MENU";
     private static final String CARD_GAME = "GAME";
+
+    private static final int APP_WIDTH  = 1020;
+    private static final int APP_HEIGHT = 740;
 
     private final GameController controller;
     private final BoardPanel boardPanel;
@@ -31,7 +33,7 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
     private final JPanel rootPanel;
 
     public CaroFrame() {
-        super("Game Cờ Caro (Gomoku) - Đồ án cơ sở | k24CSE");
+        super("Cờ Caro (Gomoku) - Đồ án cơ sở | k24CSE");
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -48,16 +50,16 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
         this.menuPanel = new MenuPanel((boardSize, mode, diff, aiFirst) -> {
             controller.startNewGame(boardSize, mode, diff, aiFirst);
             cardLayout.show(rootPanel, CARD_GAME);
-            setMinimumSize(new Dimension(800, 640));
-            pack();
-            setLocationRelativeTo(null);
+            boardPanel.updateDimensions();
+            boardPanel.revalidate();
+            boardPanel.repaint();
         });
 
         // Màn hình Game
         JPanel gamePanel = new JPanel(new java.awt.BorderLayout());
         JScrollPane boardScrollPane = new JScrollPane(boardPanel);
         boardScrollPane.setBorder(null);
-        boardScrollPane.getViewport().setBackground(new java.awt.Color(15, 23, 42));
+        boardScrollPane.getViewport().setBackground(new java.awt.Color(11, 15, 25));
         gamePanel.add(boardScrollPane, java.awt.BorderLayout.CENTER);
         gamePanel.add(controlPanel, java.awt.BorderLayout.EAST);
 
@@ -70,16 +72,16 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
         setContentPane(rootPanel);
         cardLayout.show(rootPanel, CARD_MENU);
 
-        setMinimumSize(new Dimension(620, 580));
+        setPreferredSize(new Dimension(APP_WIDTH, APP_HEIGHT));
+        setMinimumSize(new Dimension(860, 620));
         pack();
         setLocationRelativeTo(null);
     }
 
     public void showMenu() {
         cardLayout.show(rootPanel, CARD_MENU);
-        setMinimumSize(new Dimension(620, 580));
-        pack();
-        setLocationRelativeTo(null);
+        menuPanel.revalidate();
+        menuPanel.repaint();
     }
 
     @Override
@@ -92,10 +94,10 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
             boolean isX = result.getWinner() == CellState.X;
             controlPanel.updateTurnDisplay("THẮNG: " + winnerName, isX);
 
-            String[] options = {"🔄 Đấu lại", "🏠 Menu chính"};
+            String[] options = {"Đấu lại", "Menu chính"};
             int choice = JOptionPane.showOptionDialog(
                 this,
-                "🎉 CHIẾN THẮNG!\n" + winnerName + " đã tạo thành chuỗi 5 quân liên tiếp!",
+                "CHIẾN THẮNG!\n" + winnerName + " đã tạo thành chuỗi 5 quân liên tiếp!",
                 "Kết thúc ván đấu",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
@@ -108,10 +110,10 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
             }
         } else if (result.isDraw()) {
             controlPanel.updateTurnDisplay("HÒA CỜ", true);
-            String[] options = {"🔄 Đấu lại", "🏠 Menu chính"};
+            String[] options = {"Đấu lại", "Menu chính"};
             int choice = JOptionPane.showOptionDialog(
                 this,
-                "Bàn cờ đã đầy mà không ai thắng.\nKết quả ván đấu: HÒA!",
+                "HÒA CỜ!\nBàn cờ đã đầy mà không ai thắng.\nKết quả ván đấu: HÒA!",
                 "Kết thúc ván đấu",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
@@ -133,7 +135,8 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
         boardPanel.resetBoardState();
         boolean isX = controller.getCurrentTurn().getSymbol() == CellState.X;
         controlPanel.updateTurnDisplay(controller.getCurrentTurn().getName(), isX);
-        pack();
+        boardPanel.revalidate();
+        boardPanel.repaint();
     }
 
     @Override
