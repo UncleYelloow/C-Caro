@@ -39,6 +39,10 @@ public class GameController {
     private boolean isAiThinking;
     private final List<GameStateListener> listeners;
 
+    private boolean ruleBlockTwoEnds;
+    private String customPlayer1Name;
+    private String customPlayer2Name;
+
     private int scoreX = 0;
     private int scoreO = 0;
     private int scoreDraw = 0;
@@ -50,6 +54,9 @@ public class GameController {
         this.mode = GameMode.PVE;
         this.difficulty = AIDifficulty.HARD;
         this.isAiFirst = false;
+        this.ruleBlockTwoEnds = false;
+        this.customPlayer1Name = "Người chơi 1";
+        this.customPlayer2Name = "Người chơi 2";
         this.lastResult = WinResult.continuePlaying();
         this.isAiThinking = false;
         setupPlayers();
@@ -62,14 +69,22 @@ public class GameController {
     }
 
     public void startNewGame(int boardSize, GameMode mode, AIDifficulty diff) {
-        startNewGame(boardSize, mode, diff, false);
+        startNewGame(boardSize, mode, diff, false, null, null, false);
     }
 
     public void startNewGame(int boardSize, GameMode mode, AIDifficulty diff, boolean aiFirst) {
+        startNewGame(boardSize, mode, diff, aiFirst, null, null, false);
+    }
+
+    public void startNewGame(int boardSize, GameMode mode, AIDifficulty diff, boolean aiFirst,
+                             String p1Name, String p2Name, boolean blockTwoEnds) {
         this.board = new Board(boardSize);
         this.mode = mode;
         this.difficulty = diff;
         this.isAiFirst = aiFirst;
+        this.customPlayer1Name = p1Name;
+        this.customPlayer2Name = p2Name;
+        this.ruleBlockTwoEnds = blockTwoEnds;
         this.history.clear();
         this.lastResult = WinResult.continuePlaying();
         this.isAiThinking = false;
@@ -86,25 +101,32 @@ public class GameController {
     }
 
     public void rematch() {
-        startNewGame(board.getSize(), mode, difficulty, isAiFirst);
+        startNewGame(board.getSize(), mode, difficulty, isAiFirst, customPlayer1Name, customPlayer2Name, ruleBlockTwoEnds);
     }
 
     private void setupPlayers() {
+        String p1 = (customPlayer1Name != null && !customPlayer1Name.trim().isEmpty())
+                ? customPlayer1Name.trim() : "Người chơi 1";
+        String p2 = (customPlayer2Name != null && !customPlayer2Name.trim().isEmpty())
+                ? customPlayer2Name.trim() : "Người chơi 2";
+
         if (mode == GameMode.PVP) {
             if (isAiFirst) {
                 // Người chơi 2 đi trước (X)
-                this.player1 = new HumanPlayer("Người chơi 2 (X)", CellState.X);
-                this.player2 = new HumanPlayer("Người chơi 1 (O)", CellState.O);
+                this.player1 = new HumanPlayer(p2 + " (X)", CellState.X);
+                this.player2 = new HumanPlayer(p1 + " (O)", CellState.O);
             } else {
-                this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
-                this.player2 = new HumanPlayer("Người chơi 2 (O)", CellState.O);
+                this.player1 = new HumanPlayer(p1 + " (X)", CellState.X);
+                this.player2 = new HumanPlayer(p2 + " (O)", CellState.O);
             }
         } else {
+            String humanName = (customPlayer1Name != null && !customPlayer1Name.trim().isEmpty())
+                    ? customPlayer1Name.trim() : "Người chơi";
             if (isAiFirst) {
                 this.player1 = new AIPlayer("Máy AI (X)", CellState.X, difficulty);
-                this.player2 = new HumanPlayer("Người chơi (O)", CellState.O);
+                this.player2 = new HumanPlayer(humanName + " (O)", CellState.O);
             } else {
-                this.player1 = new HumanPlayer("Người chơi 1 (X)", CellState.X);
+                this.player1 = new HumanPlayer(humanName + " (X)", CellState.X);
                 this.player2 = new AIPlayer("Máy AI (O)", CellState.O, difficulty);
             }
         }
@@ -139,7 +161,7 @@ public class GameController {
         Move move = new Move(r, c, symbol);
         history.push(move);
 
-        lastResult = WinChecker.checkWin(board, r, c);
+        lastResult = WinChecker.checkWin(board, r, c, ruleBlockTwoEnds);
 
         if (lastResult.hasWinner()) {
             if (lastResult.getWinner() == CellState.X) {
@@ -192,31 +214,60 @@ public class GameController {
             return false;
         }
 
+        boolean wasGameOver = lastResult.isOver();
+        CellState winner = lastResult.hasWinner() ? lastResult.getWinner() : null;
+
+        // Nếu ván cờ đã kết thúc (thắng hoặc hòa), việc undo sẽ thu hồi kết quả và trừ lại điểm số đã cộng
+        if (lastResult.hasWinner()) {
+            if (winner == CellState.X) {
+                scoreX = Math.max(0, scoreX - 1);
+            } else {
+                scoreO = Math.max(0, scoreO - 1);
+            }
+        } else if (lastResult.isDraw()) {
+            scoreDraw = Math.max(0, scoreDraw - 1);
+        }
+
         if (mode == GameMode.PVP) {
             Move lastMove = history.pop();
             if (lastMove != null) {
                 board.clearCell(lastMove.getRow(), lastMove.getCol());
-                switchTurn();
+                // Nếu ván cờ chưa kết thúc, executeMove đã gọi switchTurn(), do đó undo cần đảo lại lượt.
+                // Nếu ván cờ đã kết thúc do chiến thắng, executeMove chưa switchTurn(),
+                // nên currentTurn hiện tại chính là người vừa thắng, giữ nguyên để người đó đánh lại.
+                if (!wasGameOver) {
+                    switchTurn();
+                }
             }
         } else {
             // Chế độ PvE: hoàn tác để trả lại lượt đi cho người chơi
             if (isAiFirst) {
-                // AI đi trước (nước 1, 3, 5 là AI; nước 2, 4 là Người chơi)
-                if (history.size() >= 2) {
+                // AI đi trước (X), Người chơi là player2 (O)
+                if (wasGameOver && winner == CellState.O) {
+                    // Người chơi thắng ở lượt của mình -> chỉ cần thu hồi 1 nước thắng của người chơi
+                    Move humanMove = history.pop();
+                    if (humanMove != null) board.clearCell(humanMove.getRow(), humanMove.getCol());
+                    currentTurn = player2;
+                } else if (history.size() >= 2) {
                     Move aiMove = history.pop();
                     board.clearCell(aiMove.getRow(), aiMove.getCol());
                     Move humanMove = history.pop();
                     board.clearCell(humanMove.getRow(), humanMove.getCol());
-                    currentTurn = player2; // Người chơi là player2 (O)
+                    currentTurn = player2;
                 }
             } else {
-                // Người đi trước (nước 1, 3 là Người; nước 2, 4 là AI)
-                if (history.size() >= 2) {
+                // Người đi trước (X), AI là player2 (O)
+                if (wasGameOver && winner == CellState.X) {
+                    // Người chơi thắng ở lượt của mình -> chỉ cần thu hồi 1 nước thắng của người chơi
+                    Move humanMove = history.pop();
+                    if (humanMove != null) board.clearCell(humanMove.getRow(), humanMove.getCol());
+                    currentTurn = player1;
+                } else if (history.size() >= 2) {
                     Move aiMove = history.pop();
                     board.clearCell(aiMove.getRow(), aiMove.getCol());
                     Move humanMove = history.pop();
                     board.clearCell(humanMove.getRow(), humanMove.getCol());
-                    currentTurn = player1; // Người chơi là player1 (X)
+                    currentTurn = player1;
                 } else if (history.size() == 1) {
                     Move onlyMove = history.pop();
                     board.clearCell(onlyMove.getRow(), onlyMove.getCol());
@@ -304,5 +355,21 @@ public class GameController {
         this.scoreX = 0;
         this.scoreO = 0;
         this.scoreDraw = 0;
+    }
+
+    public boolean isRuleBlockTwoEnds() {
+        return ruleBlockTwoEnds;
+    }
+
+    public void setRuleBlockTwoEnds(boolean ruleBlockTwoEnds) {
+        this.ruleBlockTwoEnds = ruleBlockTwoEnds;
+    }
+
+    public String getCustomPlayer1Name() {
+        return customPlayer1Name;
+    }
+
+    public String getCustomPlayer2Name() {
+        return customPlayer2Name;
     }
 }

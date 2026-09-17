@@ -28,14 +28,26 @@ public class WinChecker {
     };
 
     /**
-     * Kiểm tra trạng thái ván cờ sau nước đi tại ô (r, c).
-     * Độ phức tạp: O(1) do chỉ xét tối đa 4 hướng x 8 ô = 32 ô lân cận.
+     * Kiểm tra trạng thái ván cờ sau nước đi tại ô (r, c) theo luật Gomoku tự do (mặc định).
      */
     public static WinResult checkWin(Board board, int r, int c) {
+        return checkWin(board, r, c, false);
+    }
+
+    /**
+     * Kiểm tra trạng thái ván cờ sau nước đi tại ô (r, c).
+     * @param board Bàn cờ hiện tại
+     * @param r Hàng vừa đánh
+     * @param c Cột vừa đánh
+     * @param blockTwoEnds Nếu true, áp dụng luật Caro Việt Nam (5 quân bị chặn cả 2 đầu bởi quân đối phương không tính thắng)
+     */
+    public static WinResult checkWin(Board board, int r, int c, boolean blockTwoEnds) {
         CellState symbol = board.getCell(r, c);
         if (symbol == CellState.EMPTY) {
             return WinResult.continuePlaying();
         }
+
+        CellState opponentSymbol = (symbol == CellState.X) ? CellState.O : CellState.X;
 
         for (int[] dir : DIRECTIONS) {
             int dr = dir[0];
@@ -46,30 +58,40 @@ public class WinChecker {
 
             // Đếm về phía trước (chiều dương)
             int step = 1;
+            int frontR, frontC;
             while (true) {
-                int nr = r + step * dr;
-                int nc = c + step * dc;
-                if (!board.isValid(nr, nc) || board.getCell(nr, nc) != symbol) {
+                frontR = r + step * dr;
+                frontC = c + step * dc;
+                if (!board.isValid(frontR, frontC) || board.getCell(frontR, frontC) != symbol) {
                     break;
                 }
-                line.add(new Point(nr, nc));
+                line.add(new Point(frontR, frontC));
                 step++;
             }
 
             // Đếm về phía sau (chiều âm)
             step = 1;
+            int backR, backC;
             while (true) {
-                int nr = r - step * dr;
-                int nc = c - step * dc;
-                if (!board.isValid(nr, nc) || board.getCell(nr, nc) != symbol) {
+                backR = r - step * dr;
+                backC = c - step * dc;
+                if (!board.isValid(backR, backC) || board.getCell(backR, backC) != symbol) {
                     break;
                 }
-                line.add(new Point(nr, nc));
+                line.add(new Point(backR, backC));
                 step++;
             }
 
-            // Nếu số quân liên tiếp >= 5 thì thắng
+            // Nếu số quân liên tiếp >= 5
             if (line.size() >= WIN_COUNT) {
+                if (blockTwoEnds) {
+                    boolean frontBlocked = board.isValid(frontR, frontC) && board.getCell(frontR, frontC) == opponentSymbol;
+                    boolean backBlocked = board.isValid(backR, backC) && board.getCell(backR, backC) == opponentSymbol;
+                    // Bị chặn cả 2 đầu bởi quân đối phương -> Chưa thắng theo luật Caro VN
+                    if (frontBlocked && backBlocked) {
+                        continue;
+                    }
+                }
                 return WinResult.win(symbol, line);
             }
         }

@@ -10,6 +10,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -48,7 +49,8 @@ public class MenuPanel extends JPanel {
     private static final Color TEXT_MUTED   = new Color(148, 163, 184);
 
     public interface MenuCallback {
-        void onStartGame(int boardSize, GameMode mode, AIDifficulty difficulty, boolean aiFirst);
+        void onStartGame(int boardSize, GameMode mode, AIDifficulty difficulty, boolean aiFirst,
+                         String p1Name, String p2Name, boolean blockTwoEnds);
     }
 
     private final MenuCallback callback;
@@ -58,13 +60,20 @@ public class MenuPanel extends JPanel {
     private AIDifficulty selectedDiff = AIDifficulty.HARD;
     private boolean selectedAiFirst = false; // false = Người chơi 1/Bạn đi trước (X); true = Máy/Người chơi 2 đi trước (X)
     private int selectedSize = Board.DEFAULT_SIZE;
+    private boolean selectedBlockTwoEnds = false;
 
     // Các nút nhóm điều khiển
     private final List<PillButton> modeButtons = new ArrayList<>();
     private final List<PillButton> diffButtons = new ArrayList<>();
     private final List<PillButton> turnButtons = new ArrayList<>();
+    private final List<PillButton> ruleButtons = new ArrayList<>();
     private final List<PillButton> sizeButtons = new ArrayList<>();
     private JPanel diffRowPanel;
+
+    private JTextField txtPlayer1;
+    private JTextField txtPlayer2;
+    private JLabel lblPlayer1Title;
+    private JLabel lblPlayer2Title;
 
     public MenuPanel(MenuCallback callback) {
         this.callback = callback;
@@ -166,13 +175,13 @@ public class MenuPanel extends JPanel {
         cardPanel.setOpaque(false);
         cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
         cardPanel.setBorder(BorderFactory.createEmptyBorder(18, 26, 18, 26));
-        cardPanel.setMaximumSize(new Dimension(580, 310));
-        cardPanel.setPreferredSize(new Dimension(580, 310));
+        cardPanel.setMaximumSize(new Dimension(610, 420));
+        cardPanel.setPreferredSize(new Dimension(610, 420));
         cardPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Row 1: Chế độ chơi
         cardPanel.add(createSectionLabel("CHẾ ĐỘ CHƠI"));
-        cardPanel.add(Box.createVerticalStrut(6));
+        cardPanel.add(Box.createVerticalStrut(4));
         JPanel modeRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
         modeRow.setOpaque(false);
 
@@ -187,15 +196,44 @@ public class MenuPanel extends JPanel {
         modeRow.add(btnPvp);
         cardPanel.add(modeRow);
 
-        cardPanel.add(Box.createVerticalStrut(12));
+        cardPanel.add(Box.createVerticalStrut(10));
 
-        // Row 2: Độ khó AI
+        // Row 2: Tên người chơi
+        cardPanel.add(createSectionLabel("TÊN NGƯỜI CHƠI"));
+        cardPanel.add(Box.createVerticalStrut(4));
+        JPanel namesRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        namesRow.setOpaque(false);
+
+        lblPlayer1Title = new JLabel("Tên bạn:");
+        lblPlayer1Title.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblPlayer1Title.setForeground(TEXT_MUTED);
+
+        txtPlayer1 = createTextField("Người chơi");
+
+        lblPlayer2Title = new JLabel("Người 2:");
+        lblPlayer2Title.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblPlayer2Title.setForeground(TEXT_MUTED);
+        lblPlayer2Title.setVisible(false);
+
+        txtPlayer2 = createTextField("Người chơi 2");
+        txtPlayer2.setVisible(false);
+
+        namesRow.add(lblPlayer1Title);
+        namesRow.add(txtPlayer1);
+        namesRow.add(Box.createHorizontalStrut(10));
+        namesRow.add(lblPlayer2Title);
+        namesRow.add(txtPlayer2);
+        cardPanel.add(namesRow);
+
+        cardPanel.add(Box.createVerticalStrut(10));
+
+        // Row 3: Độ khó AI
         diffRowPanel = new JPanel();
         diffRowPanel.setOpaque(false);
         diffRowPanel.setLayout(new BoxLayout(diffRowPanel, BoxLayout.Y_AXIS));
 
         diffRowPanel.add(createSectionLabel("ĐỘ KHÓ AI"));
-        diffRowPanel.add(Box.createVerticalStrut(6));
+        diffRowPanel.add(Box.createVerticalStrut(4));
         JPanel diffRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
         diffRow.setOpaque(false);
 
@@ -217,11 +255,11 @@ public class MenuPanel extends JPanel {
         diffRowPanel.add(diffRow);
         cardPanel.add(diffRowPanel);
 
-        cardPanel.add(Box.createVerticalStrut(12));
+        cardPanel.add(Box.createVerticalStrut(10));
 
-        // Row 3: Lượt đi trước
+        // Row 4: Lượt đi trước
         cardPanel.add(createSectionLabel("LƯỢT ĐI TRƯỚC"));
-        cardPanel.add(Box.createVerticalStrut(6));
+        cardPanel.add(Box.createVerticalStrut(4));
         JPanel turnRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
         turnRow.setOpaque(false);
 
@@ -237,11 +275,31 @@ public class MenuPanel extends JPanel {
         turnRow.add(btnTurn2);
         cardPanel.add(turnRow);
 
-        cardPanel.add(Box.createVerticalStrut(12));
+        cardPanel.add(Box.createVerticalStrut(10));
 
-        // Row 4: Kích thước bàn cờ
+        // Row 5: Luật chiến thắng
+        cardPanel.add(createSectionLabel("LUẬT CHIẾN THẮNG"));
+        cardPanel.add(Box.createVerticalStrut(4));
+        JPanel ruleRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
+        ruleRow.setOpaque(false);
+
+        PillButton btnRuleFree = new PillButton("Gomoku tự do (≥5 thắng)", true);
+        PillButton btnRuleBlock = new PillButton("Chặn 2 đầu (Luật Caro VN)", false);
+        ruleButtons.add(btnRuleFree);
+        ruleButtons.add(btnRuleBlock);
+
+        btnRuleFree.addActionListener(e -> setRuleBlockTwoEnds(false));
+        btnRuleBlock.addActionListener(e -> setRuleBlockTwoEnds(true));
+
+        ruleRow.add(btnRuleFree);
+        ruleRow.add(btnRuleBlock);
+        cardPanel.add(ruleRow);
+
+        cardPanel.add(Box.createVerticalStrut(10));
+
+        // Row 6: Kích thước bàn cờ
         cardPanel.add(createSectionLabel("KÍCH THƯỚC BÀN CỜ"));
-        cardPanel.add(Box.createVerticalStrut(6));
+        cardPanel.add(Box.createVerticalStrut(4));
         JPanel sizeRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
         sizeRow.setOpaque(false);
 
@@ -257,7 +315,7 @@ public class MenuPanel extends JPanel {
         cardPanel.add(sizeRow);
 
         add(cardPanel);
-        add(Box.createVerticalStrut(24));
+        add(Box.createVerticalStrut(18));
 
         // --- 3. ACTION BUTTONS ---
         JButton btnStart = new JButton("BẮT ĐẦU VÁN CỜ", UiIcons.createPlayIcon(12)) {
@@ -283,16 +341,20 @@ public class MenuPanel extends JPanel {
         btnStart.setIconTextGap(10);
         btnStart.setBackground(ACCENT_GREEN);
         btnStart.setForeground(Color.WHITE);
-        btnStart.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnStart.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnStart.setBorderPainted(false);
         btnStart.setContentAreaFilled(false);
         btnStart.setFocusPainted(false);
         btnStart.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnStart.setMaximumSize(new Dimension(320, 50));
-        btnStart.setPreferredSize(new Dimension(320, 50));
+        btnStart.setMaximumSize(new Dimension(300, 46));
+        btnStart.setPreferredSize(new Dimension(300, 46));
         btnStart.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnStart.addActionListener(e -> {
-            callback.onStartGame(selectedSize, selectedMode, selectedDiff, selectedAiFirst);
+            String p1 = txtPlayer1.getText().trim();
+            String p2 = txtPlayer2.getText().trim();
+            if (p1.isEmpty()) p1 = (selectedMode == GameMode.PVE) ? "Người chơi" : "Người chơi 1";
+            if (p2.isEmpty()) p2 = (selectedMode == GameMode.PVE) ? "Máy AI" : "Người chơi 2";
+            callback.onStartGame(selectedSize, selectedMode, selectedDiff, selectedAiFirst, p1, p2, selectedBlockTwoEnds);
         });
 
         btnStart.addMouseListener(new MouseAdapter() {
@@ -320,8 +382,8 @@ public class MenuPanel extends JPanel {
         btnQuit.setContentAreaFilled(false);
         btnQuit.setFocusPainted(false);
         btnQuit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnQuit.setMaximumSize(new Dimension(140, 34));
-        btnQuit.setPreferredSize(new Dimension(140, 34));
+        btnQuit.setMaximumSize(new Dimension(140, 32));
+        btnQuit.setPreferredSize(new Dimension(140, 32));
         btnQuit.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnQuit.addActionListener(e -> System.exit(0));
 
@@ -339,9 +401,23 @@ public class MenuPanel extends JPanel {
         });
 
         add(btnStart);
-        add(Box.createVerticalStrut(10));
+        add(Box.createVerticalStrut(8));
         add(btnQuit);
         add(Box.createVerticalGlue());
+    }
+
+    private JTextField createTextField(String defaultValue) {
+        JTextField tf = new JTextField(defaultValue);
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tf.setForeground(TEXT_PRIMARY);
+        tf.setBackground(new Color(15, 23, 42));
+        tf.setCaretColor(Color.WHITE);
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(51, 65, 85), 1, true),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        tf.setPreferredSize(new Dimension(140, 28));
+        return tf;
     }
 
     private void setGameMode(GameMode mode) {
@@ -350,21 +426,39 @@ public class MenuPanel extends JPanel {
         modeButtons.get(1).setActive(mode == GameMode.PVP);
 
         boolean isPve = mode == GameMode.PVE;
+        diffRowPanel.setVisible(isPve);
         for (PillButton b : diffButtons) {
             b.setEnabled(isPve);
         }
 
         if (isPve) {
+            lblPlayer1Title.setText("Tên bạn:");
+            lblPlayer2Title.setVisible(false);
+            txtPlayer2.setVisible(false);
+            txtPlayer1.setText("Người chơi");
             turnButtons.get(0).setText("Bạn đi trước (X)");
             turnButtons.get(0).setIcon(UiIcons.createSwordsIcon(13));
             turnButtons.get(1).setText("Máy đi trước (X)");
             turnButtons.get(1).setIcon(UiIcons.createRobotIcon(13));
         } else {
-            turnButtons.get(0).setText("Người chơi 1 (X)");
+            lblPlayer1Title.setText("Người 1 (X/O):");
+            lblPlayer2Title.setVisible(true);
+            txtPlayer2.setVisible(true);
+            txtPlayer1.setText("Người chơi 1");
+            txtPlayer2.setText("Người chơi 2");
+            turnButtons.get(0).setText("Người chơi 1 đi trước (X)");
             turnButtons.get(0).setIcon(UiIcons.createUserIcon(13));
-            turnButtons.get(1).setText("Người chơi 2 (O)");
+            turnButtons.get(1).setText("Người chơi 2 đi trước (X)");
             turnButtons.get(1).setIcon(UiIcons.createUserIcon(13));
         }
+        revalidate();
+        repaint();
+    }
+
+    private void setRuleBlockTwoEnds(boolean blockTwoEnds) {
+        this.selectedBlockTwoEnds = blockTwoEnds;
+        ruleButtons.get(0).setActive(!blockTwoEnds);
+        ruleButtons.get(1).setActive(blockTwoEnds);
     }
 
     private void setDifficulty(AIDifficulty diff) {

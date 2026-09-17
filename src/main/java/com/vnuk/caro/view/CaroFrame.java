@@ -47,8 +47,8 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
         this.rootPanel = new JPanel(cardLayout);
 
         // Màn hình Menu
-        this.menuPanel = new MenuPanel((boardSize, mode, diff, aiFirst) -> {
-            controller.startNewGame(boardSize, mode, diff, aiFirst);
+        this.menuPanel = new MenuPanel((boardSize, mode, diff, aiFirst, p1Name, p2Name, blockTwoEnds) -> {
+            controller.startNewGame(boardSize, mode, diff, aiFirst, p1Name, p2Name, blockTwoEnds);
             cardLayout.show(rootPanel, CARD_GAME);
             boardPanel.updateDimensions();
             boardPanel.revalidate();
@@ -68,6 +68,9 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
 
         controller.addListener(this);
 
+        // Đăng ký phím tắt tiện ích
+        setupKeyboardShortcuts();
+
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setContentPane(rootPanel);
         cardLayout.show(rootPanel, CARD_MENU);
@@ -76,6 +79,47 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
         setMinimumSize(new Dimension(860, 620));
         pack();
         setLocationRelativeTo(null);
+    }
+
+    private void setupKeyboardShortcuts() {
+        // Ctrl + Z: Hoàn tác
+        rootPanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK), "undo");
+        rootPanel.getActionMap().put("undo", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                controller.undoMove();
+            }
+        });
+
+        // F2: Đấu lại ván hiện tại
+        rootPanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "rematch");
+        rootPanel.getActionMap().put("rematch", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                controller.rematch();
+            }
+        });
+
+        // Ctrl + N hoặc Escape: Trở về Menu chính
+        rootPanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK), "newgame");
+        rootPanel.getActionMap().put("newgame", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                showMenu();
+            }
+        });
+
+        rootPanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "escape");
+        rootPanel.getActionMap().put("escape", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                showMenu();
+            }
+        });
     }
 
     public void showMenu() {
