@@ -101,6 +101,19 @@ public class GameController {
     }
 
     public void rematch() {
+        // Nếu ván trước đã kết thúc và có người chiến thắng:
+        // Áp dụng quy tắc người chiến thắng được quyền cầm quân X đi trước ở ván tiếp theo
+        if (lastResult != null && lastResult.hasWinner()) {
+            if (mode == GameMode.PVE) {
+                boolean aiWon = (lastResult.getWinner() == player1.getSymbol() && player1 instanceof AIPlayer)
+                             || (lastResult.getWinner() == player2.getSymbol() && player2 instanceof AIPlayer);
+                this.isAiFirst = aiWon;
+            } else {
+                // PvP: Người thắng ván trước cầm quân X đi trước
+                boolean p2Won = (lastResult.getWinner() == player2.getSymbol());
+                this.isAiFirst = p2Won;
+            }
+        }
         startNewGame(board.getSize(), mode, difficulty, isAiFirst, customPlayer1Name, customPlayer2Name, ruleBlockTwoEnds);
     }
 
@@ -161,33 +174,36 @@ public class GameController {
         Move move = new Move(r, c, symbol);
         history.push(move);
 
-        lastResult = WinChecker.checkWin(board, r, c, ruleBlockTwoEnds);
+        WinResult moveResult = WinChecker.checkWin(board, r, c, ruleBlockTwoEnds);
+        this.lastResult = moveResult;
 
-        if (lastResult.hasWinner()) {
-            if (lastResult.getWinner() == CellState.X) {
+        if (moveResult.hasWinner()) {
+            if (moveResult.getWinner() == CellState.X) {
                 scoreX++;
             } else {
                 scoreO++;
             }
-        } else if (lastResult.isDraw()) {
-            scoreDraw++;
-        }
-
-        for (GameStateListener l : listeners) {
-            l.onMoveMade(move, lastResult);
-        }
-
-        if (lastResult.hasWinner()) {
             notifyStatus("Chúc mừng! " + currentTurn.getName() + " đã chiến thắng!");
-        } else if (lastResult.isDraw()) {
+        } else if (moveResult.isDraw()) {
+            scoreDraw++;
             notifyStatus("Bàn cờ đã đầy! Ván cờ Hòa!");
         } else {
             switchTurn();
             notifyStatus("Lượt chơi tiếp theo: " + currentTurn.getName());
         }
+
+        // Báo cho các listener sau khi trạng thái của lượt đánh đã cập nhật hoàn tất
+        for (GameStateListener l : listeners) {
+            l.onMoveMade(move, moveResult);
+        }
     }
 
     private void triggerAIMove() {
+        final Player aiPlayer = currentTurn;
+        if (!(aiPlayer instanceof AIPlayer)) {
+            return;
+        }
+
         isAiThinking = true;
         notifyStatus("Máy AI (" + difficulty.getDisplayName() + ") đang suy nghĩ...");
 
@@ -195,11 +211,11 @@ public class GameController {
         new Thread(() -> {
             try {
                 Thread.sleep(300); // Tạo độ trễ nhẹ tự nhiên
-                Move aiMove = currentTurn.makeMove(board);
+                Move aiMove = aiPlayer.makeMove(board);
                 SwingUtilities.invokeLater(() -> {
                     isAiThinking = false;
-                    if (aiMove != null && !lastResult.isOver()) {
-                        executeMove(aiMove.getRow(), aiMove.getCol(), currentTurn.getSymbol());
+                    if (aiMove != null && !lastResult.isOver() && currentTurn == aiPlayer) {
+                        executeMove(aiMove.getRow(), aiMove.getCol(), aiPlayer.getSymbol());
                     }
                 });
             } catch (InterruptedException e) {

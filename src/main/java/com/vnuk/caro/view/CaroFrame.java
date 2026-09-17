@@ -9,6 +9,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -148,9 +149,9 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
                 null, options, options[0]
             );
             if (choice == 0) {
-                controller.rematch();
+                SwingUtilities.invokeLater(controller::rematch);
             } else {
-                showMenu();
+                SwingUtilities.invokeLater(this::showMenu);
             }
         } else if (result.isDraw()) {
             controlPanel.updateTurnDisplay("HÒA CỜ", true);
@@ -164,9 +165,9 @@ public class CaroFrame extends JFrame implements GameController.GameStateListene
                 null, options, options[0]
             );
             if (choice == 0) {
-                controller.rematch();
+                SwingUtilities.invokeLater(controller::rematch);
             } else {
-                showMenu();
+                SwingUtilities.invokeLater(this::showMenu);
             }
         } else {
             boolean isX = controller.getCurrentTurn().getSymbol() == CellState.X;

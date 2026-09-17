@@ -31,9 +31,10 @@ public class AIAlgorithmTest {
         testTakeImmediateWin();
         testPerformanceHardMode();
         testBotFirstAndRematch();
+        testAiWinThenRematchBotGoesFirst();
 
         System.out.println("\n=================================================");
-        System.out.println("TẤT CẢ 8/8 BÀI TEST AI & TÍNH NĂNG ĐÃ VƯỢT QUA! (PASS)");
+        System.out.println("TẤT CẢ 9/9 BÀI TEST AI & TÍNH NĂNG ĐÃ VƯỢT QUA! (PASS)");
         System.out.println("=================================================");
     }
 
@@ -170,6 +171,45 @@ public class AIAlgorithmTest {
         } catch (InterruptedException ignored) {}
 
         assertCondition(controller.getHistory().size() == 1, "8. Đấu lại (Rematch) làm mới ván cờ, Bot tự động đi trước ván mới");
+    }
+
+    private static void testAiWinThenRematchBotGoesFirst() {
+        GameController controller = new GameController();
+        // Bắt đầu game với Người chơi đi trước (isAiFirst = false)
+        controller.startNewGame(15, GameMode.PVE, AIDifficulty.HARD, false, "Người chơi", "Máy AI", false);
+
+        // Giả lập thế cờ AI thắng:
+        // Đặt trước 4 quân O cho AI tại hàng 6: (6, 2), (6, 3), (6, 4), (6, 5)
+        // Đặt 4 quân X cho người chơi tại hàng 2: (2, 2), (2, 3), (2, 4), (2, 5)
+        for (int c = 2; c <= 5; c++) {
+            controller.getBoard().setCell(6, c, CellState.O);
+            controller.getBoard().setCell(2, c, CellState.X);
+        }
+
+        // Người chơi đánh một nước vô hại tại (0, 0)
+        controller.handleHumanMove(0, 0);
+
+        // Chờ AI tính toán và đánh nước kết liễu 5 quân tại (6, 6) hoặc (6, 1)
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException ignored) {}
+
+        assertCondition(controller.getLastResult().hasWinner(), "9.1. AI đã thực hiện nước đi và giành chiến thắng");
+        assertCondition(controller.getLastResult().getWinner() == CellState.O, "9.2. Người chiến thắng là AI");
+
+        // Người chơi bấm "Đấu lại" (Rematch)
+        controller.rematch();
+
+        assertCondition(controller.isAiFirst(), "9.3. Khi AI thắng, ván đấu lại tự động gán quyền đi trước cho AI (isAiFirst = true)");
+
+        // Chờ AI đi nước mở màn của ván mới
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException ignored) {}
+
+        assertCondition(controller.getHistory().size() == 1, "9.4. AI đã tự động đánh nước mở màn ván mới");
+        assertCondition(controller.getBoard().getCell(7, 7) == CellState.X, "9.5. AI đánh quân X tại tâm bàn cờ (7, 7)");
+        assertCondition(controller.getCurrentTurn() instanceof HumanPlayer, "9.6. Lượt chơi chuyển sang Người chơi (O)");
     }
 
     private static void assertCondition(boolean condition, String testName) {

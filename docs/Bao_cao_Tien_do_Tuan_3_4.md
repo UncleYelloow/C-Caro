@@ -133,9 +133,10 @@ Dự án đã xây dựng bộ 3 chương trình kiểm thử tự động, tíc
 - [✓ PASS] 6. Tốc độ tính toán cấp Khó cực nhanh (0ms, dưới ngưỡng 200ms).
 - [✓ PASS] 7. Cấu hình Bot đi trước thành công, tự động đánh tâm bàn cờ.
 - [✓ PASS] 8. Đấu lại (Rematch) làm mới ván cờ, Bot tự động đi trước ván mới.
-👉 **Kết quả: 8/8 test cases PASS.**
+- [✓ PASS] 9. Khi AI thắng ván trước, bấm Đấu lại (Rematch) thì AI tự động được quyền đi trước (X) và đánh nước mở màn.
+👉 **Kết quả: 9/9 test cases PASS.**
 
-> **TỔNG KẾT:** **21/21 (100%) bài test tự động đều vượt qua xuất sắc.**
+> **TỔNG KẾT:** **22/22 (100%) bài test tự động đều vượt qua xuất sắc.**
 
 ---
 
